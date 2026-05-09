@@ -37,7 +37,9 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=YOUR_GEMINI_API_KEY",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
         "sendBody": true,
         "contentType": "json",
         "body": "={\"contents\":[{\"parts\":[{\"inline_data\":{\"mime_type\":\"{{ $json.mimeType }}\",\"data\":\"{{ $json.fileData }}\"}},{\"text\":\"{{ $json.prompt }}\"}]}],\"generationConfig\":{\"responseMimeType\":\"application/json\"}}",
@@ -49,7 +51,13 @@
       "name": "Gemini Vision API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [480, 300]
+      "position": [480, 300],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "REPLACE_WITH_GEMINI_CREDENTIAL_ID",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     },
     {
       "parameters": {
