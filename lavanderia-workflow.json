@@ -21,18 +21,24 @@
       "name": "Upload Ledger",
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.2,
-      "position": [0, 300],
+      "position": [
+        0,
+        300
+      ],
       "webhookId": "lavanderia-upload-001"
     },
     {
       "parameters": {
-        "jsCode": "// Extract the uploaded file and prepare the Gemini API request body\nconst item = $input.first();\nconst binaryKeys = Object.keys(item.binary);\nconst results = [];\n\nfor (let i = 0; i < binaryKeys.length; i++) {\n  const binaryKey = binaryKeys[i];\n  const binary = item.binary[binaryKey];\n  const mimeType = binary.mimeType || 'image/jpeg';\n  const binaryBuffer = await this.helpers.getBinaryDataBuffer(0, binaryKey);\n  const fileData = binaryBuffer.toString('base64');\n\n  const prompt = `You are analyzing a handwritten laundry business ledger page.\\n\\nReturn ONLY valid JSON matching this exact structure — no explanation, no markdown:\\n\\n{\\n  \"pages\": [\\n    {\\n      \"date\": \"YYYY-MM-DD\",\\n      \"sale_total\": 0,\\n      \"entries\": [\\n        {\\n          \"invoice_id\": \"L-XXXXX\",\\n          \"amount\": 0,\\n          \"payment_method\": \"cash\",\\n          \"ocr_confidence\": 85\\n        }\\n      ],\\n      \"failed\": false,\\n      \"fail_reason\": \"\"\\n    }\\n  ]\\n}\\n\\nRules:\\n1. date: the date written at the top of the page, in YYYY-MM-DD format.\\n2. sale_total: ONLY the number written next to the word SALE at the bottom of the page. Ignore all other numbers such as costs or other totals.\\n3. Each line on the page is one payment entry:\\n   - invoice_id: the invoice number starting with L- (example: L-33115)\\n   - amount: the number at the end of the line\\n   - payment_method: use \"card\" if the line ends with the letter M, \"link\" if it ends with the letter L, \"cash\" if there is no letter at the end\\n   - ocr_confidence: a number from 0 to 100 representing how clearly you could read this specific line\\n4. If a page cannot be read at all, set failed to true and explain in fail_reason.\\n5. For a PDF with multiple pages, return one object per page inside the pages array.\\n\\nReturn ONLY the JSON. Nothing else.`;\n\n  results.push({\n    json: {\n      requestBody: {\n        contents: [{\n          parts: [\n            { inline_data: { mime_type: mimeType, data: fileData } },\n            { text: prompt }\n          ]\n        }],\n        generationConfig: { responseMimeType: \"application/json\" }\n      }\n    }\n  });\n}\nreturn results;"
+        "jsCode": "// Extract the uploaded file and prepare the Gemini API request body\nconst item = $input.first();\nconst binaryKeys = Object.keys(item.binary);\nconst results = [];\n\nfor (let i = 0; i < binaryKeys.length; i++) {\n  const binaryKey = binaryKeys[i];\n  const binary = item.binary[binaryKey];\n  const mimeType = binary.mimeType || 'image/jpeg';\n  const binaryBuffer = await this.helpers.getBinaryDataBuffer(0, binaryKey);\n  const fileData = binaryBuffer.toString('base64');\n\n  const prompt = `You are analyzing a handwritten laundry business ledger page.\\n\\nReturn ONLY valid JSON matching this exact structure — no explanation, no markdown:\\n\\n{\\n  \"pages\": [\\n    {\\n      \"date\": \"YYYY-MM-DD\",\\n      \"sale_total\": 0,\\n      \"entries\": [\\n        {\\n          \"invoice_id\": \"L-XXXXX\",\\n          \"amount\": 0,\\n          \"payment_method\": \"cash\",\\n          \"ocr_confidence\": 85\\n        }\\n      ],\\n      \"failed\": false,\\n      \"fail_reason\": \"\"\\n    }\\n  ]\\n}\\n\\nRules:\\n1. date: the date written at the top of the page. It is usually handwritten as DD-MM-YY (for example 31-05-26 means day 31, month 05, year 2026). Always convert and output it as YYYY-MM-DD.\\n2. sale_total: ONLY the number written next to the word SALE at the bottom of the page. Ignore all other numbers such as costs or other totals.\\n3. Each line on the page is one payment entry:\\n   - invoice_id: the invoice number starting with L- (example: L-33115)\\n   - amount: the number at the end of the line\\n   - payment_method: look at the letter written right after the invoice number. Use \"card\" if the letter is M, \"link\" if the letter is L, \"bank_transfer\" if the letter is B, and \"cash\" if there is no letter.\\n   - ocr_confidence: a number from 0 to 100 representing how clearly you could read this specific line\\n4. If a page cannot be read at all, set failed to true and explain in fail_reason.\\n5. For a PDF with multiple pages, return one object per page inside the pages array.\\n\\nReturn ONLY the JSON. Nothing else.`;\n\n  results.push({\n    json: {\n      requestBody: {\n        contents: [{\n          parts: [\n            { inline_data: { mime_type: mimeType, data: fileData } },\n            { text: prompt }\n          ]\n        }],\n        generationConfig: { responseMimeType: \"application/json\" }\n      }\n    }\n  });\n}\nreturn results;"
       },
       "id": "node-02-prepare-request",
       "name": "Prepare Gemini Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
@@ -51,7 +57,10 @@
       "name": "Gemini Vision API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [480, 300],
+      "position": [
+        480,
+        300
+      ],
       "credentials": {
         "httpQueryAuth": {
           "id": "REPLACE_WITH_GEMINI_CREDENTIAL_ID",
@@ -67,7 +76,10 @@
       "name": "Parse Gemini Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, 300]
+      "position": [
+        720,
+        300
+      ]
     },
     {
       "parameters": {
@@ -77,7 +89,10 @@
       "name": "Aggregate Parsed Pages",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 300]
+      "position": [
+        960,
+        300
+      ]
     },
     {
       "parameters": {
@@ -101,7 +116,10 @@
       "name": "Read Orders DB",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [960, 520],
+      "position": [
+        960,
+        520
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -117,17 +135,23 @@
       "name": "Aggregate DB Rows",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1200, 520]
+      "position": [
+        1200,
+        520
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// MATCHING ENGINE\n// ============================================================\n\nconst COL_LEGACY_ID       = 'Legacy ID';\nconst COL_ORDER_ID        = 'Order ID';\nconst COL_INVOICE_DATE    = 'Invoice Date';\nconst COL_AMOUNT_PAID     = 'Payment Amount';\nconst COL_TOTAL_DISCOUNT  = 'Total After Discount';\nconst COL_REMAINING       = 'Remaining Balance (AED)';\nconst COL_METHOD          = 'Payment Method';\nconst COL_PAYMENT_DATE    = 'Payment Date(s)';\n\nconst dbData = $input.first().json;\nconst allDbRows = dbData.dbRows;\n\nconst parsedData = $('Aggregate Parsed Pages').first().json;\nconst pages = parsedData.pages || [];\n\nconst matchResults   = [];\nconst parsedEntries  = [];\nconst salesValidation = [];\nconst dbUpdates      = [];\n\nfor (const page of pages) {\n\n  if (page.failed) {\n    salesValidation.push({\n      Date: page.date || 'UNKNOWN',\n      'Parsed Sale Total': 'FAILED',\n      'DB Sale Total': '',\n      Match: 'FAILED',\n      Diff: '',\n      Note: page.fail_reason || 'Page could not be read'\n    });\n    continue;\n  }\n\n  const pageDate    = page.date;\n  const pageDateObj = new Date(pageDate);\n\n  const dbRowsForDate = allDbRows.filter(row => {\n    if (!row[COL_INVOICE_DATE]) return false;\n    return new Date(row[COL_INVOICE_DATE]).toDateString() === pageDateObj.toDateString();\n  });\n\n  const dbSaleTotal = dbRowsForDate.reduce((sum, row) => {\n    return sum + (parseFloat(row[COL_TOTAL_DISCOUNT]) || 0);\n  }, 0);\n\n  const parsedSaleTotal = parseFloat(page.sale_total) || 0;\n  const saleDiff = Math.abs(dbSaleTotal - parsedSaleTotal);\n\n  salesValidation.push({\n    Date: pageDate,\n    'Parsed Sale Total': parsedSaleTotal,\n    'DB Sale Total': Math.round(dbSaleTotal * 100) / 100,\n    Match: saleDiff <= 1 ? 'YES' : 'NO',\n    Diff: Math.round(saleDiff * 100) / 100\n  });\n\n  for (const entry of (page.entries || [])) {\n\n    parsedEntries.push({\n      Date: pageDate,\n      'Order ID': entry.invoice_id,\n      'Payment Method': entry.payment_method,\n      'Amount Parsed': entry.amount,\n      'Confidence Score': entry.ocr_confidence\n    });\n\n    const exactMatches = allDbRows.filter(row =>\n      String(row[COL_LEGACY_ID] || '').trim() === String(entry.invoice_id || '').trim()\n    );\n\n    if (exactMatches.length === 0) {\n      matchResults.push({\n        'Page Date': pageDate,\n        'Parsed Invoice ID': entry.invoice_id,\n        'DB Order ID': '',\n        'DB Legacy ID': '',\n        'Payment Method (Page)': entry.payment_method,\n        'Payment Method (DB)': '',\n        'Method Match': 'NO',\n        'Amount (Page)': entry.amount,\n        'Amount (DB)': '',\n        'Amount Match': 'NO',\n        'Total After Discount (DB)': '',\n        'Remaining Balance (DB)': '',\n        'Payment Date (Current)': '',\n        'Payment Date (To Update)': pageDate,\n        'Match Status': 'NO_MATCH',\n        'Flag Reason': 'Invoice ID not found in database',\n        'Confidence Score': 0\n      });\n      continue;\n    }\n\n    const sixMonthsBack   = new Date(pageDateObj); sixMonthsBack.setMonth(sixMonthsBack.getMonth() - 6);\n    const twelveMonthsBack = new Date(pageDateObj); twelveMonthsBack.setMonth(twelveMonthsBack.getMonth() - 12);\n\n    let dateWindowFlag = false;\n    let candidates = exactMatches.filter(row => {\n      if (!row[COL_INVOICE_DATE]) return false;\n      const d = new Date(row[COL_INVOICE_DATE]);\n      return d >= sixMonthsBack && d <= pageDateObj;\n    });\n\n    if (candidates.length === 0) {\n      candidates = exactMatches.filter(row => {\n        if (!row[COL_INVOICE_DATE]) return false;\n        const d = new Date(row[COL_INVOICE_DATE]);\n        return d >= twelveMonthsBack && d <= pageDateObj;\n      });\n      if (candidates.length > 0) dateWindowFlag = true;\n    }\n\n    if (candidates.length === 0) {\n      matchResults.push({\n        'Page Date': pageDate,\n        'Parsed Invoice ID': entry.invoice_id,\n        'DB Order ID': '',\n        'DB Legacy ID': '',\n        'Payment Method (Page)': entry.payment_method,\n        'Payment Method (DB)': '',\n        'Method Match': 'NO',\n        'Amount (Page)': entry.amount,\n        'Amount (DB)': '',\n        'Amount Match': 'NO',\n        'Total After Discount (DB)': '',\n        'Remaining Balance (DB)': '',\n        'Payment Date (Current)': '',\n        'Payment Date (To Update)': pageDate,\n        'Match Status': 'NO_MATCH',\n        'Flag Reason': 'Invoice found but outside 12 month window',\n        'Confidence Score': 0\n      });\n      continue;\n    }\n\n    let bestMatch = null;\n    let bestScore = -1;\n\n    for (const row of candidates) {\n      let score = 0;\n      const dbAmount    = parseFloat(row[COL_AMOUNT_PAID]) || 0;\n      const entryAmount = parseFloat(entry.amount) || 0;\n      if (Math.abs(dbAmount - entryAmount) <= 1) score++;\n      const dbMethod = (row[COL_METHOD] || '').toLowerCase().trim();\n      if (dbMethod === entry.payment_method) score++;\n      if (score > bestScore) { bestScore = score; bestMatch = row; }\n    }\n\n    const flags       = [];\n    const dbAmount    = parseFloat(bestMatch[COL_AMOUNT_PAID]) || 0;\n    const entryAmount = parseFloat(entry.amount) || 0;\n    const amountMatch = Math.abs(dbAmount - entryAmount) <= 1;\n    const dbMethod    = (bestMatch[COL_METHOD] || '').toLowerCase().trim();\n    const methodMatch = dbMethod === entry.payment_method;\n\n    if (dateWindowFlag) flags.push('Date window >6m');\n    if (!amountMatch)   flags.push(`Amount: page=${entry.amount} DB=${bestMatch[COL_AMOUNT_PAID]}`);\n    if (!methodMatch)   flags.push(`Method: page=${entry.payment_method} DB=${bestMatch[COL_METHOD]}`);\n    if ((entry.ocr_confidence || 0) < 80) flags.push(`Low OCR conf (${entry.ocr_confidence}%)`);\n\n    const ocrScore    = (entry.ocr_confidence || 0) * 0.60;\n    const amountScore = amountMatch ? 15 : 0;\n    const methodScore = methodMatch ? 15 : 0;\n    const dateScore   = dateWindowFlag ? 5 : 10;\n    const confidenceScore = Math.round(ocrScore + amountScore + methodScore + dateScore);\n\n    const matchStatus = flags.length === 0 ? 'AUTO' : 'FLAG';\n\n    matchResults.push({\n      'Page Date': pageDate,\n      'Parsed Invoice ID': entry.invoice_id,\n      'DB Order ID': bestMatch[COL_ORDER_ID] || '',\n      'DB Legacy ID': bestMatch[COL_LEGACY_ID] || '',\n      'Payment Method (Page)': entry.payment_method,\n      'Payment Method (DB)': bestMatch[COL_METHOD] || '',\n      'Method Match': methodMatch ? 'YES' : 'NO',\n      'Amount (Page)': entry.amount,\n      'Amount (DB)': bestMatch[COL_AMOUNT_PAID] || '',\n      'Amount Match': amountMatch ? 'YES' : 'NO',\n      'Total After Discount (DB)': bestMatch[COL_TOTAL_DISCOUNT] || '',\n      'Remaining Balance (DB)': bestMatch[COL_REMAINING] || '',\n      'Payment Date (Current)': bestMatch[COL_PAYMENT_DATE] || '',\n      'Payment Date (To Update)': pageDate,\n      'Match Status': matchStatus,\n      'Flag Reason': flags.join('; '),\n      'Confidence Score': confidenceScore\n    });\n\n    dbUpdates.push({\n      row_number: bestMatch._row_number,\n      updated_payment_date: pageDate,\n      confidence_score: confidenceScore,\n      match_status: matchStatus\n    });\n  }\n}\n\nreturn [{\n  json: { matchResults, parsedEntries, salesValidation, dbUpdates }\n}];"
+        "jsCode": "// ============================================================\n// MATCHING ENGINE\n// ============================================================\n\nconst COL_LEGACY_ID       = 'Legacy ID';\nconst COL_ORDER_ID        = 'Order ID';\nconst COL_INVOICE_DATE    = 'Invoice Date';\nconst COL_AMOUNT_PAID     = 'Payment Amount';\nconst COL_TOTAL_DISCOUNT  = 'Total After Discount';\nconst COL_REMAINING       = 'Remaining Balance (AED)';\nconst COL_METHOD          = 'Payment Method';\nconst COL_PAYMENT_DATE    = 'Payment Date(s)';\n\n// Ledger writes IDs as 'L-32995'; the DB stores bare values ('32995', '0015A').\n// Normalize both sides by removing a leading 'L'/'L-' before comparing.\nconst normalizeId = (v) => String(v == null ? '' : v).trim().replace(/^L[-\\s]?/i, '').trim().toUpperCase();\n\nconst dbData = $input.first().json;\nconst allDbRows = dbData.dbRows;\n\nconst parsedData = $('Aggregate Parsed Pages').first().json;\nconst pages = parsedData.pages || [];\n\nconst matchResults   = [];\nconst parsedEntries  = [];\nconst salesValidation = [];\nconst dbUpdates      = [];\n\nfor (const page of pages) {\n\n  if (page.failed) {\n    salesValidation.push({\n      Date: page.date || 'UNKNOWN',\n      'Parsed Sale Total': 'FAILED',\n      'DB Sale Total': '',\n      Match: 'FAILED',\n      Diff: '',\n      Note: page.fail_reason || 'Page could not be read'\n    });\n    continue;\n  }\n\n  const pageDate    = page.date;\n  const pageDateObj = new Date(pageDate);\n\n  const dbRowsForDate = allDbRows.filter(row => {\n    if (!row[COL_INVOICE_DATE]) return false;\n    return new Date(row[COL_INVOICE_DATE]).toDateString() === pageDateObj.toDateString();\n  });\n\n  const dbSaleTotal = dbRowsForDate.reduce((sum, row) => {\n    return sum + (parseFloat(row[COL_TOTAL_DISCOUNT]) || 0);\n  }, 0);\n\n  const parsedSaleTotal = parseFloat(page.sale_total) || 0;\n  const saleDiff = Math.abs(dbSaleTotal - parsedSaleTotal);\n\n  salesValidation.push({\n    Date: pageDate,\n    'Parsed Sale Total': parsedSaleTotal,\n    'DB Sale Total': Math.round(dbSaleTotal * 100) / 100,\n    Match: saleDiff <= 1 ? 'YES' : 'NO',\n    Diff: Math.round(saleDiff * 100) / 100\n  });\n\n  for (const entry of (page.entries || [])) {\n\n    parsedEntries.push({\n      Date: pageDate,\n      'Order ID': entry.invoice_id,\n      'Payment Method': entry.payment_method,\n      'Amount Parsed': entry.amount,\n      'Confidence Score': entry.ocr_confidence\n    });\n\n    const normParsedId = normalizeId(entry.invoice_id);\n    const exactMatches = allDbRows.filter(row =>\n      normParsedId !== '' && normalizeId(row[COL_LEGACY_ID]) === normParsedId\n    );\n\n    if (exactMatches.length === 0) {\n      matchResults.push({\n        'Page Date': pageDate,\n        'Parsed Invoice ID': entry.invoice_id,\n        'DB Order ID': '',\n        'DB Legacy ID': '',\n        'Payment Method (Page)': entry.payment_method,\n        'Payment Method (DB)': '',\n        'Method Match': 'NO',\n        'Amount (Page)': entry.amount,\n        'Amount (DB)': '',\n        'Amount Match': 'NO',\n        'Total After Discount (DB)': '',\n        'Remaining Balance (DB)': '',\n        'Payment Date (Current)': '',\n        'Payment Date (To Update)': pageDate,\n        'Match Status': 'NO_MATCH',\n        'Flag Reason': 'Invoice ID not found in database',\n        'Confidence Score': 0\n      });\n      continue;\n    }\n\n    const sixMonthsBack   = new Date(pageDateObj); sixMonthsBack.setMonth(sixMonthsBack.getMonth() - 6);\n    const twelveMonthsBack = new Date(pageDateObj); twelveMonthsBack.setMonth(twelveMonthsBack.getMonth() - 12);\n\n    let dateWindowFlag = false;\n    let candidates = exactMatches.filter(row => {\n      if (!row[COL_INVOICE_DATE]) return false;\n      const d = new Date(row[COL_INVOICE_DATE]);\n      return d >= sixMonthsBack && d <= pageDateObj;\n    });\n\n    if (candidates.length === 0) {\n      candidates = exactMatches.filter(row => {\n        if (!row[COL_INVOICE_DATE]) return false;\n        const d = new Date(row[COL_INVOICE_DATE]);\n        return d >= twelveMonthsBack && d <= pageDateObj;\n      });\n      if (candidates.length > 0) dateWindowFlag = true;\n    }\n\n    if (candidates.length === 0) {\n      matchResults.push({\n        'Page Date': pageDate,\n        'Parsed Invoice ID': entry.invoice_id,\n        'DB Order ID': '',\n        'DB Legacy ID': '',\n        'Payment Method (Page)': entry.payment_method,\n        'Payment Method (DB)': '',\n        'Method Match': 'NO',\n        'Amount (Page)': entry.amount,\n        'Amount (DB)': '',\n        'Amount Match': 'NO',\n        'Total After Discount (DB)': '',\n        'Remaining Balance (DB)': '',\n        'Payment Date (Current)': '',\n        'Payment Date (To Update)': pageDate,\n        'Match Status': 'NO_MATCH',\n        'Flag Reason': 'Invoice found but outside 12 month window',\n        'Confidence Score': 0\n      });\n      continue;\n    }\n\n    let bestMatch = null;\n    let bestScore = -1;\n\n    for (const row of candidates) {\n      let score = 0;\n      const dbAmount    = parseFloat(row[COL_AMOUNT_PAID]) || 0;\n      const entryAmount = parseFloat(entry.amount) || 0;\n      if (Math.abs(dbAmount - entryAmount) <= 1) score++;\n      const dbMethod = (row[COL_METHOD] || '').toLowerCase().trim();\n      if (dbMethod === entry.payment_method) score++;\n      if (score > bestScore) { bestScore = score; bestMatch = row; }\n    }\n\n    const flags       = [];\n    const dbAmount    = parseFloat(bestMatch[COL_AMOUNT_PAID]) || 0;\n    const entryAmount = parseFloat(entry.amount) || 0;\n    const amountMatch = Math.abs(dbAmount - entryAmount) <= 1;\n    const dbMethod    = (bestMatch[COL_METHOD] || '').toLowerCase().trim();\n    const methodMatch = dbMethod === entry.payment_method;\n\n    if (dateWindowFlag) flags.push('Date window >6m');\n    if (!amountMatch)   flags.push(`Amount: page=${entry.amount} DB=${bestMatch[COL_AMOUNT_PAID]}`);\n    if (!methodMatch)   flags.push(`Method: page=${entry.payment_method} DB=${bestMatch[COL_METHOD]}`);\n    if ((entry.ocr_confidence || 0) < 80) flags.push(`Low OCR conf (${entry.ocr_confidence}%)`);\n\n    const ocrScore    = (entry.ocr_confidence || 0) * 0.60;\n    const amountScore = amountMatch ? 15 : 0;\n    const methodScore = methodMatch ? 15 : 0;\n    const dateScore   = dateWindowFlag ? 5 : 10;\n    const confidenceScore = Math.round(ocrScore + amountScore + methodScore + dateScore);\n\n    const matchStatus = flags.length === 0 ? 'AUTO' : 'FLAG';\n\n    matchResults.push({\n      'Page Date': pageDate,\n      'Parsed Invoice ID': entry.invoice_id,\n      'DB Order ID': bestMatch[COL_ORDER_ID] || '',\n      'DB Legacy ID': bestMatch[COL_LEGACY_ID] || '',\n      'Payment Method (Page)': entry.payment_method,\n      'Payment Method (DB)': bestMatch[COL_METHOD] || '',\n      'Method Match': methodMatch ? 'YES' : 'NO',\n      'Amount (Page)': entry.amount,\n      'Amount (DB)': bestMatch[COL_AMOUNT_PAID] || '',\n      'Amount Match': amountMatch ? 'YES' : 'NO',\n      'Total After Discount (DB)': bestMatch[COL_TOTAL_DISCOUNT] || '',\n      'Remaining Balance (DB)': bestMatch[COL_REMAINING] || '',\n      'Payment Date (Current)': bestMatch[COL_PAYMENT_DATE] || '',\n      'Payment Date (To Update)': pageDate,\n      'Match Status': matchStatus,\n      'Flag Reason': flags.join('; '),\n      'Confidence Score': confidenceScore\n    });\n\n    dbUpdates.push({\n      row_number: bestMatch._row_number,\n      updated_payment_date: pageDate,\n      confidence_score: confidenceScore,\n      match_status: matchStatus\n    });\n  }\n}\n\nreturn [{\n  json: { matchResults, parsedEntries, salesValidation, dbUpdates }\n}];"
       },
       "id": "node-07-matching-engine",
       "name": "Matching Engine",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1440, 420]
+      "position": [
+        1440,
+        420
+      ]
     },
     {
       "parameters": {
@@ -137,7 +161,10 @@
       "name": "Split Parsed Entries",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1680, 160]
+      "position": [
+        1680,
+        160
+      ]
     },
     {
       "parameters": {
@@ -162,7 +189,10 @@
       "name": "Write Parsed Entries",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [1920, 160],
+      "position": [
+        1920,
+        160
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -178,7 +208,10 @@
       "name": "Split Match Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1680, 360]
+      "position": [
+        1680,
+        360
+      ]
     },
     {
       "parameters": {
@@ -203,7 +236,10 @@
       "name": "Write Match Results",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [1920, 360],
+      "position": [
+        1920,
+        360
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -219,7 +255,10 @@
       "name": "Build DB Update",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1680, 560]
+      "position": [
+        1680,
+        560
+      ]
     },
     {
       "parameters": {
@@ -238,7 +277,10 @@
       "name": "Update Orders DB",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1920, 560],
+      "position": [
+        1920,
+        560
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -254,7 +296,10 @@
       "name": "Split Sales Validation",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1680, 760]
+      "position": [
+        1680,
+        760
+      ]
     },
     {
       "parameters": {
@@ -279,7 +324,10 @@
       "name": "Write Sales Validation",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [1920, 760],
+      "position": [
+        1920,
+        760
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -290,45 +338,151 @@
   ],
   "connections": {
     "Upload Ledger": {
-      "main": [[{ "node": "Prepare Gemini Request", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepare Gemini Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare Gemini Request": {
-      "main": [[{ "node": "Gemini Vision API", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Gemini Vision API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Gemini Vision API": {
-      "main": [[{ "node": "Parse Gemini Response", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parse Gemini Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse Gemini Response": {
-      "main": [[{ "node": "Aggregate Parsed Pages", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Aggregate Parsed Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Aggregate Parsed Pages": {
-      "main": [[{ "node": "Read Orders DB", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Read Orders DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Read Orders DB": {
-      "main": [[{ "node": "Aggregate DB Rows", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Aggregate DB Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Aggregate DB Rows": {
-      "main": [[{ "node": "Matching Engine", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Matching Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Matching Engine": {
-      "main": [[
-        { "node": "Split Parsed Entries",  "type": "main", "index": 0 },
-        { "node": "Split Match Results",   "type": "main", "index": 0 },
-        { "node": "Build DB Update",       "type": "main", "index": 0 },
-        { "node": "Split Sales Validation","type": "main", "index": 0 }
-      ]]
+      "main": [
+        [
+          {
+            "node": "Split Parsed Entries",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Match Results",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build DB Update",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Sales Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Split Parsed Entries": {
-      "main": [[{ "node": "Write Parsed Entries", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Write Parsed Entries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Split Match Results": {
-      "main": [[{ "node": "Write Match Results", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Write Match Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build DB Update": {
-      "main": [[{ "node": "Update Orders DB", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Update Orders DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Split Sales Validation": {
-      "main": [[{ "node": "Write Sales Validation", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Write Sales Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
